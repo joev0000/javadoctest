@@ -1,0 +1,11 @@
+plugins {
+  id 'java-library'
+}
+
+compileJava {
+  options.compilerArgs += [
+    '-Xlint:all',
+    '-Werror']
+}
+
+version = '0.1'
