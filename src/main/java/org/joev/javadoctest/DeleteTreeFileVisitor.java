@@ -20,7 +20,7 @@
  * IN THE SOFTWARE.
  */
 
-package joev.javadoctest;
+package org.joev.javadoctest;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;

@@ -26,6 +26,6 @@
  * {@snippet test :
  * }
  */
-module joev.javadoctest {
+module org.joev.javadoctest {
     requires jdk.javadoc;
 }

@@ -26,4 +26,4 @@
  * {@snippet test :
  * }
  */
-package joev.javadoctest;
+package org.joev.javadoctest;

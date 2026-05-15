@@ -41,7 +41,7 @@ can be run by specifying the JavadocTestDoclet when running the tool:
 javadoc \
   -quiet \
   -docletpath /path/to/javadoctest-*.jar \
-  -doclet joev.javadoctest.JavaDocTestDoclet \
+  -doclet org.joev.javadoctest.JavaDocTestDoclet \
   -sourcepath /path/to/source \
   -J-enableassertions \
   -J-Djavadoctest.classpath=/path/to/classes \

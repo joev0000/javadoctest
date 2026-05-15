@@ -20,7 +20,7 @@
  * IN THE SOFTWARE.
  */
 
-package joev.javadoctest;
+package org.joev.javadoctest;
 
 /**
  * The result of running a test.

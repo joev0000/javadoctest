@@ -20,7 +20,7 @@
  * IN THE SOFTWARE.
  */
 
-package joev.javadoctest;
+package org.joev.javadoctest;
 
 import static java.util.Objects.requireNonNullElse;
 import java.io.IOException;
