@@ -22,7 +22,7 @@ public class Calculator {
   /**
    * Add two numbers.
    *
-   * {@snippet: test
+   * {@snippet test:
    *   int a = 2;
    *   int b = 3;
    *   assert a + b == 5
@@ -34,8 +34,9 @@ public class Calculator {
 }
 ```
 
-The javadoc tool will include this in the generated documentation.  The tests
-can be run by specifying the JavadocTestDoclet when running the tool:
+The javadoc tool will include the tests in the generated documentation as any
+other snippet. When the JavadocTestDoclet is used, javadoc will compile and
+run the tests.
 
 ```sh
 javadoc \
@@ -56,14 +57,121 @@ An import for the containing package is also included. For example:
 ```java
 /**
  *
- * {@snippet test import=java.util.* :
+ * {@snippet test import=java.util.*,org.junit.jupiter.api.Assertions :
  *   List<String> list = new ArrayList<>();
  *   list.add("Test");
  *
- *   assert list.length() == 1
+ *   Assertions.assertEquals(1, list.size());
  * }
  */
 ```
 
+## Maven Integration
 
+JavadocTest can be used with Maven, and run along with other tests.
+
+### Requirements
+* org.apache.maven.plugins:maven-dependency-plugin
+* org.apache.maven.plugins:maven-javadoc-plugin
+
+### POM Changes
+
+The maven-dependency-plugin is used to gather the classpath for dependencies
+that may appear in tests. The dependency path is set to a property that is
+used later in the Javadoc plugin.
+
+```xml
+<plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-dependency-plugin</artifactId>
+  <executions>
+    <execution>
+      <goals><goal>build-classpath</goal></goals>
+      <configuration>
+        <silent>true</silent>
+        <outputProperty>project.classpath</outputProperty>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
+```
+
+If the project already uses the standard doclet for documentation generation,
+the JavadocTest doclet can also be run in an different execution. For example:
+
+```xml
+<plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-javadoc-plugin</artifactId>
+  <version>3.12.0</version>
+  <executions>
+    <execution>
+      <phase>package</phase>
+      <id>standard</id>
+      <goals>
+        <goal>javadoc</goal>
+      </goals>
+      <configuration>
+        <encoding>UTF-8</encoding>
+        <additionalOptions>
+          <additionalOption>--syntax-highlight</additionalOption>
+        </additionalOptions>
+      </configuration>
+    </execution>
+    <execution>
+      <phase>test</phase>
+      <id>javadoctest</id>
+      <goals>
+        <goal>javadoc</goal>
+      </goals>
+      <configuration>
+        <doclet>org.joev.javadoctest.JavaDocTestDoclet</doclet>
+        <docletArtifact>
+          <groupId>org.joev</groupId>
+          <artifactId>javadoctest</artifactId>
+          <version>0.2</version>
+        </docletArtifact>
+        <sourcepath>src/main/java</sourcepath>
+        <useStandardDocletOptions>false</useStandardDocletOptions>
+        <disableNoFonts>true</disableNoFonts>
+        <quiet>true</quiet>
+        <encoding>UTF-8</encoding>
+        <additionalJOptions>
+          <additionalJOption>-J-enableassertions</additionalJOption>
+          <additionalJOption>-J-Djavadoctest.classpath=${project.basedir}/target/classes:${project.classpath}</additionalJOption>
+        </additionalJOptions>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
+```
+
+With this configuration, the Javadoc tests will be run during the Maven test phase.
+
+## Gradle Integration
+
+Add a configuation, and add javadoctest as a dependency for that configuration.
+
+```groovy
+configurations {
+  javadocTest
+}
+
+dependencies {
+  javadocTest "org.joev:javadoctest:0.2"
+}
+```
+
+Next, add a task to run JavadocTest:
+
+```groovy
+task javadocTest(type: Javadoc) {
+  source = sourceSets.main.allJava
+  options.docletpath = configurations.javadocTest.files.asType(List)
+  options.doclet = "org.joev.javadoctest.JavaDocTestDoclet"
+  options.JFlags = ["-enableassertions", "-Djavadoctest.classpath=build/classes/java/main:" + "${configurations.compileClasspath.asPath}"]
+}
+```
+
+The tests can be run using the javadocTest task.
 [JEP 413]: https://openjdk.org/jeps/413
