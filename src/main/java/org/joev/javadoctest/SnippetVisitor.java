@@ -1,23 +1,20 @@
 /*
- * Copyright (c) 2024 Joseph Vigneau
+ * Copyright (c) 2024-2026 Joseph Vigneau
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the “Software”), to
- * deal in the Software without restriction, including without limitation the
- * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
- * sell copies of the Software, and to permit persons to whom the Software is
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the “Software”), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or
+ * substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package org.joev.javadoctest;
@@ -35,16 +32,19 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.PackageElement;
 import javax.tools.Diagnostic;
+import javax.tools.DiagnosticListener;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
@@ -104,6 +104,9 @@ public class SnippetVisitor extends DocTreeScanner<TestResult, SnippetVisitor.Da
 
   /** The Path of compiled test classes. */
   private final Path classDir;
+
+  /** The set of visited snippets. */
+  private Set<Integer> visited = new HashSet<>();
 
   /**
    * Create a new SnippetVisitor. This expects the javadoctest.classpath system property to be set
@@ -205,14 +208,20 @@ public class SnippetVisitor extends DocTreeScanner<TestResult, SnippetVisitor.Da
    */
   @Override
   public TestResult visitSnippet(SnippetTree node, SnippetVisitor.Data data) {
+    if (visited.contains(node.hashCode())) {
+      return TestResult.ZERO;
+    }
     TestResult result = TestResult.ZERO;
     List<Attribute> attributes =
         node.getAttributes().stream().map((dt) -> dt.accept(attributeExtractor, null)).toList();
     boolean isTest = attributes.stream().anyMatch((a) -> "test".equals(a.name()));
     if (isTest) {
+      visited.add(node.hashCode());
       Element element = data.element();
       String generatedClassName = generateTestClassName(element);
-      data.reporter().print(Diagnostic.Kind.NOTE, "Running snippet test " + generatedClassName);
+      Element enclosing = element.getEnclosingElement();
+      data.reporter().print(Diagnostic.Kind.NOTE, "Running snippet test for "
+          + (enclosing == null ? "" : enclosing.toString() + " -> ") + data.element());
 
       // The imports list includes the "star" import for the current package and
       // any imports provided in the import attribute of the snippet.
@@ -220,13 +229,12 @@ public class SnippetVisitor extends DocTreeScanner<TestResult, SnippetVisitor.Da
           getEnclosingPackage(element).stream().map((x) -> x.getQualifiedName().toString() + ".*"),
           attributes.stream().filter((a) -> "import".equals(a.name())).flatMap(
               (a) -> a.values().stream().flatMap((v) -> Arrays.asList(v.split(",")).stream())))
-          .map((s) -> "import " + s + "; ")
+          .map((s) -> "import " + s + ";\n")
           .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append).toString();
 
       // Generate the test class
       String java = imports + "public class " + generatedClassName
-          + " { public static void test() throws Exception { " + node.getBody() + " } }";
-
+          + " {\n  public static void test() throws Exception {\n" + node.getBody() + "}\n}";
       // Create a Java File Object that lives in memory
       JavaFileObject jfo = new SimpleJavaFileObject(
           URI.create("string:///" + generatedClassName + ".java"), JavaFileObject.Kind.SOURCE) {
@@ -242,20 +250,34 @@ public class SnippetVisitor extends DocTreeScanner<TestResult, SnippetVisitor.Da
       StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
       List<String> options = List.of("-classpath", System.getProperty("javadoctest.classpath"),
           "-d", classDir.toString());
-      compiler.getTask(null, fileManager, null, options, null, compilationUnits).call();
+      DiagnosticListener<JavaFileObject> dl = new DiagnosticListener<JavaFileObject>() {
+        @Override
+        public void report(Diagnostic<? extends JavaFileObject> diagnostic) {
+          data.reporter().print(Diagnostic.Kind.ERROR, element, diagnostic.toString());
+        }
+      };
+      boolean compileSuccess =
+          compiler.getTask(null, fileManager, dl, options, null, compilationUnits).call();
 
-      // Run the test.
-      try {
-        Class<?> cls = classLoader.loadClass(generatedClassName);
-        Method test = cls.getMethod("test");
-        test.invoke(null);
-        result = result.reduce(TestResult.PASS);
-      } catch (InvocationTargetException e) {
-        data.reporter().print(Diagnostic.Kind.ERROR, element, "Failure in snippet test for:");
-        requireNonNullElse(e.getCause(), e).printStackTrace(data.reporter().getDiagnosticWriter());
+      if (compileSuccess) {
+        // Run the test.
+        try {
+          Class<?> cls = classLoader.loadClass(generatedClassName);
+          Method test = cls.getMethod("test");
+          test.invoke(null);
+          result = result.reduce(TestResult.PASS);
+        } catch (InvocationTargetException e) {
+          data.reporter().print(Diagnostic.Kind.ERROR, element,
+              "Failure in snippet test (%s) for:".formatted(e.getCause()));
+          result = result.reduce(TestResult.FAIL);
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException e) {
+          data.reporter().print(Diagnostic.Kind.ERROR, element,
+              "Could not invoke snippet test (%s) for:".formatted(e));
+          result = result.reduce(TestResult.FAIL);
+        }
+      } else {
+        data.reporter().print(Diagnostic.Kind.ERROR, element, "Test compilation failed.");
         result = result.reduce(TestResult.FAIL);
-      } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException e) {
-        e.printStackTrace();
       }
     }
 

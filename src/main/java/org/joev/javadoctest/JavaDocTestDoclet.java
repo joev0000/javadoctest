@@ -1,31 +1,28 @@
 /*
- * Copyright (c) 2024 Joseph Vigneau
+ * Copyright (c) 2024-2026 Joseph Vigneau
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the “Software”), to
- * deal in the Software without restriction, including without limitation the
- * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
- * sell copies of the Software, and to permit persons to whom the Software is
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the “Software”), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or
+ * substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package org.joev.javadoctest;
 
-import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-
+import java.util.stream.Collectors;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.tools.Diagnostic;
@@ -83,16 +80,24 @@ public class JavaDocTestDoclet implements Doclet {
    * {@snippet test import=jdk.javadoc.doclet.Doclet,java.util.Collections :
    *
    * Doclet doclet = new JavaDocTestDoclet();
-   * assert Collections.emptySet().equals(doclet.getSupportedOptions());
+   * assert doclet.getSupportedOptions().size() == 4;
    * }
    */
-  // @formatter:on
   @Override
   public Set<? extends Doclet.Option> getSupportedOptions() {
-    return Collections.emptySet();
+    return List.of("notimestamp", "d", "windowtitle", "doctitle").stream()
+        .map(o -> new Doclet.Option() {
+          @Override public int getArgumentCount() { return 1; }
+          @Override public String getDescription() { return "(ignored)"; }
+          @Override public Kind getKind() { return Doclet.Option.Kind.STANDARD; }
+          @Override public List<String> getNames() { return List.of("-" + o); }
+          @Override public String getParameters() { return ""; }
+          @Override public boolean process(String option, List<String> arguments) { return true; }
+          @Override public String toString() { return "Option " + o; }
+        }).collect(Collectors.toSet());
   }
-
   // @formatter:off
+
   /**
    * Get the supported source version.
    *
@@ -130,7 +135,7 @@ public class JavaDocTestDoclet implements Doclet {
       reporter.print(Diagnostic.Kind.NOTE, "Tests passed: " + result.pass() + ", failed: "
           + result.fail() + ", skipped: " + result.skip());
     }
-    return true;
+    return result.fail() == 0;
   }
 
   /**
