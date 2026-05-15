@@ -3,10 +3,25 @@ plugins {
   id 'maven-publish'
 }
 
+configurations {
+  javadocTest
+}
+
+dependencies {
+  javadocTest "org.joev:javadoctest:0.2"
+}
+
 compileJava {
   options.compilerArgs += [
     '-Xlint:all',
     '-Werror']
+}
+
+task javadocTest(type: Javadoc) {
+  source = sourceSets.main.allJava
+  options.docletpath = configurations.javadocTest.files.asType(List)
+  options.doclet = "org.joev.javadoctest.JavaDocTestDoclet"
+  options.JFlags = ["-enableassertions", "-Djavadoctest.classpath=build/classes/java/main:" + "${configurations.compileClasspath.asPath}"]
 }
 
 publishing {
