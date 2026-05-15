@@ -1,5 +1,6 @@
 plugins {
   id 'java-library'
+  id 'maven-publish'
 }
 
 compileJava {
@@ -8,4 +9,30 @@ compileJava {
     '-Werror']
 }
 
+publishing {
+  publications {
+    maven(MavenPublication) {
+      artifactId = 'javadoctest'
+
+      pom {
+        name = 'Javadoc Test'
+        description = 'A Javadoc doclet that runs test code in documentation snippets'
+        licenses {
+          license {
+            name = 'MIT'
+          }
+        }
+        developers {
+          developer {
+            name = 'Joseph Vigneau'
+            email = 'joev@alum.wpi.edu'
+          }
+        }
+      }
+      from components.java
+    }
+  }
+}
+
+group = 'org.joev'
 version = '0.1'
