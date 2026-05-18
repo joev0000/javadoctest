@@ -8,7 +8,7 @@ configurations {
 }
 
 dependencies {
-  javadocTest "org.joev:javadoctest:0.2"
+  javadocTest "org.joev:javadoctest:0.3"
 }
 
 compileJava {
@@ -50,4 +50,4 @@ publishing {
 }
 
 group = 'org.joev'
-version = '0.2'
+version = '0.3'

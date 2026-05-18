@@ -38,6 +38,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -203,6 +205,20 @@ public class SnippetVisitor extends DocTreeScanner<TestResult, SnippetVisitor.Da
     return Optional.empty();
   }
 
+  private static final Pattern importPattern = Pattern.compile("^\\s*///\\s*import\\s+(.+)");
+  /**
+   * Get a stream of imports that appear as comments at the beginning of a snippet.
+   *
+   * @param body The body of the snippet.
+   * @return a stream of import statements to be injected into the test source.
+   */
+  private Stream<String> importStatements(String body) {
+    return body.lines().map(String::trim).map(s -> {
+      Matcher matcher = importPattern.matcher(s);
+      return matcher.find() ? matcher.group(1) : null;
+    }).takeWhile(s -> s != null);
+  }
+
   /**
    * Runs tests in the provided snippet if it has the test attribute.
    */
@@ -225,11 +241,13 @@ public class SnippetVisitor extends DocTreeScanner<TestResult, SnippetVisitor.Da
 
       // The imports list includes the "star" import for the current package and
       // any imports provided in the import attribute of the snippet.
-      String imports = Stream.concat(
+      String imports = Stream.of(
           getEnclosingPackage(element).stream().map((x) -> x.getQualifiedName().toString() + ".*"),
           attributes.stream().filter((a) -> "import".equals(a.name())).flatMap(
-              (a) -> a.values().stream().flatMap((v) -> Arrays.asList(v.split(",")).stream())))
-          .map((s) -> "import " + s + ";\n")
+              (a) -> a.values().stream().flatMap((v) -> Arrays.asList(v.split(",")).stream())),
+          importStatements(node.getBody().getBody()))
+          .flatMap(s -> s)
+          .map((s) -> "import " + s + (s.endsWith(";") ? "" : ";") + "\n")
           .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append).toString();
 
       // Generate the test class

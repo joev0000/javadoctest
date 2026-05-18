@@ -41,7 +41,7 @@ import jdk.javadoc.doclet.Reporter;
  * <pre>
  * javadoc \
  *   -docletpath path/to/javadoctest.jar \
- *   -doclet joev.javadoctest.JavaDocTestDoclet \
+ *   -doclet org.joev.javadoctest.JavaDocTestDoclet \
  *   -sourcepath path/to/source \
  *   -J-Djavadoctest.classpath path/to/compiled/classes \
  *   -J-ea \
@@ -101,8 +101,10 @@ public class JavaDocTestDoclet implements Doclet {
   /**
    * Get the supported source version.
    *
-   * {@snippet test=junit5 foo=bar
-   *   import=jdk.javadoc.doclet.Doclet,javax.lang.model.SourceVersion:
+   * {@snippet test=junit5 foo=bar :
+   * /// import jdk.javadoc.doclet.Doclet;
+   * /// import javax.lang.model.SourceVersion;
+   *
    * Doclet doclet = new JavaDocTestDoclet();
    * assert SourceVersion.latest().equals(doclet.getSupportedSourceVersion());
    * }
