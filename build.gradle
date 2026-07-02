@@ -1,6 +1,7 @@
 plugins {
   id 'java-library'
   id 'maven-publish'
+  id 'signing'
 }
 
 java {
@@ -13,7 +14,7 @@ configurations {
 }
 
 dependencies {
-  javadocTest "org.joev:javadoctest:0.3"
+  javadocTest "org.joev:javadoctest:1.0.0"
 }
 
 compileJava {
@@ -37,6 +38,7 @@ publishing {
       pom {
         name = 'Javadoc Test'
         description = 'A Javadoc doclet that runs test code in documentation snippets'
+        url = 'https://github.com/joev0000/javadoctest'
         licenses {
           license {
             name = 'MIT'
@@ -45,8 +47,13 @@ publishing {
         developers {
           developer {
             name = 'Joseph Vigneau'
-            email = 'joev@alum.wpi.edu'
+            email = 'code@joev.org'
           }
+        }
+        scm {
+          connection = 'scm:git:git://github.com/joev0000/javadoctest.git'
+          developerConnection = 'scm:git:ssh://git@github.com:joev0000/javadoctest.git'
+          url = 'https://github.com/joev0000/javadoctest'
         }
       }
       from components.java
@@ -54,5 +61,10 @@ publishing {
   }
 }
 
+signing {
+  useGpgCmd()
+  sign(publishing.publications["maven"])
+}
+
 group = 'org.joev'
-version = '0.3'
+version = '1.0.0'
