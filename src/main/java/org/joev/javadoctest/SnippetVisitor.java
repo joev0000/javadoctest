@@ -169,7 +169,20 @@ public class SnippetVisitor extends DocTreeScanner<TestResult, SnippetVisitor.Da
       Name name =
           (current instanceof PackageElement) ? ((PackageElement) current).getQualifiedName()
               : current.getSimpleName();
-      deque.addFirst(name.toString().replace(".", "_"));
+
+      String nameString = name.toString();
+      char[] nameChars = nameString.toCharArray();
+      boolean changed = false;
+      for(int i = 0; i < nameChars.length; i++) {
+        if(!Character.isJavaIdentifierPart(nameChars[i])) {
+          nameChars[i] = '_';
+          changed = true;
+        }
+      }
+      if(changed) {
+        nameString = new String(nameChars);
+      }
+      deque.addFirst(nameString);
       current = current.getEnclosingElement();
     }
 

@@ -14,7 +14,7 @@ configurations {
 }
 
 dependencies {
-  javadocTest "org.joev:javadoctest:1.0.0"
+  javadocTest "org.joev:javadoctest:1.0.1"
 }
 
 compileJava {
@@ -67,4 +67,4 @@ signing {
 }
 
 group = 'org.joev'
-version = '1.0.0'
+version = '1.0.1'
