@@ -144,7 +144,7 @@ the JavadocTest doclet can also be run in an different execution. For example:
         <docletArtifact>
           <groupId>org.joev</groupId>
           <artifactId>javadoctest</artifactId>
-          <version>0.2</version>
+          <version>1.0.2</version>
         </docletArtifact>
         <sourcepath>src/main/java</sourcepath>
         <useStandardDocletOptions>false</useStandardDocletOptions>
@@ -173,7 +173,7 @@ configurations {
 }
 
 dependencies {
-  javadocTest "org.joev:javadoctest:0.2"
+  javadocTest "org.joev:javadoctest:1.0.2"
 }
 ```
 
