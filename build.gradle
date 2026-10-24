@@ -14,10 +14,11 @@ configurations {
 }
 
 dependencies {
-  javadocTest "org.joev:javadoctest:1.0.1"
+  javadocTest "org.joev:javadoctest:1.0.2"
 }
 
 compileJava {
+  options.release = 18
   options.compilerArgs += [
     '-Xlint:all',
     '-Werror']
@@ -67,4 +68,4 @@ signing {
 }
 
 group = 'org.joev'
-version = '1.0.1'
+version = '1.0.2'
